@@ -1,0 +1,96 @@
+Set Up Android Permissions: Ensure that your Android packaging system (e.g., buildozer or PyInstaller for Android) includes necessary USB permissions. Add the following to your Android manifest file:
+<uses-permission android:name="android.permission.USB_PERMISSION" />
+If you're packaging the application for Android (using a tool like PyInstaller), make sure to bundle usbserial4a and handle permissions within the Android manifest as mentioned earlier.
+
+To package your PySide6 application for Android using the usbserial4a library, you'll need to follow these steps. This will cover integrating usbserial4a into your Android packaging process, modifying your code for USB communication, and ensuring that the necessary permissions are granted in the Android manifest.
+
+Step 1: Install and Configure Buildozer
+Install Buildozer: If you haven’t already, install Buildozer by running:
+
+bash
+Copy code
+pip install buildozer
+Initialize Buildozer: In your project directory, run:
+
+bash
+Copy code
+buildozer init
+This creates a buildozer.spec file where you will configure your app.
+
+Step 2: Modify buildozer.spec
+Add usbserial4a as a Dependency: Open the buildozer.spec file and find the line that starts with requirements. Add usbserial4a to the list. It should look something like this:
+
+plaintext
+Copy code
+requirements = python3,kivy,usbserial4a,other_dependencies
+Ensure You Have Necessary Libraries: If your app uses pySerial, ensure that it is also included in the requirements or consider removing it if you are switching entirely to usbserial4a.
+
+Configure Permissions: Scroll down to the section where you configure permissions. Add the necessary permissions to access USB devices:
+
+plaintext
+Copy code
+android.permissions = android.permission.USB_PERMISSION, android.permission.WRITE_EXTERNAL_STORAGE
+Step 3: Modify Your Code
+Import the usbserial4a Library: In your code, replace the usage of pySerial with usbserial4a. Depending on your specific code and how you interact with the serial devices, you will adapt the serial communication functions. The following is a simplified example:
+
+python
+Copy code
+from usbserial4a import UsbSerial
+
+class MyApp(QWidget):
+    # ... existing code ...
+
+    def reset_serial_connection(self):
+        # Close existing connection if open
+        if self.serial_conn and self.serial_conn.is_open:
+            self.serial_conn.close()
+
+        port = find_device_port()
+        if port:
+            try:
+                # Create a UsbSerial object
+                self.serial_conn = UsbSerial(port=port, baudrate=38400, timeout=1)
+                self.reader = sr.SerialReader(self.serial_conn)
+                self.writer = sw.SerialWriter(self.serial_conn)
+                self.data_output.setText("Connection established. Awaiting data...")
+            except Exception as e:
+                print(f"Error accessing serial port: {e}")
+                self.data_output.setText("Failed to connect to serial port.")
+        else:
+            self.data_output.setText("No connection yet.")
+Make sure you adjust the methods and parameters as needed to match the usbserial4a library API.
+
+Step 4: Prepare Your Manifest
+If you are using a custom Android manifest (instead of buildozer.spec), ensure that you add the USB permissions directly in the AndroidManifest.xml file. Here’s an example of how to do that:
+
+xml
+Copy code
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="your.package.name">
+
+    <uses-permission android:name="android.permission.USB_PERMISSION"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <application
+        android:label="YourAppName"
+        android:icon="@drawable/icon">
+        <!-- other configurations -->
+    </application>
+</manifest>
+Step 5: Build the APK
+Once everything is configured:
+
+Build the APK: Run the following command to build your APK:
+
+bash
+Copy code
+buildozer -v android debug
+Deploy to Device: After the build process completes, deploy the app to your connected Android device:
+
+bash
+Copy code
+buildozer android deploy run
+Additional Notes
+Testing: After deploying, test your app thoroughly to ensure that the serial communication works as expected.
+USB Host Mode: Ensure that your Android device supports USB Host mode if you are connecting USB devices.
+Handling Permissions at Runtime: In Android 6.0 (API level 23) and higher, you may need to request permissions at runtime. Look into the Android documentation for more details on how to handle that if needed.
